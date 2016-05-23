@@ -1,0 +1,461 @@
+<!DOCTYPE html><!-- Cecilia Mason -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBD 170 - Final Project</title>
+
+<!-- jQuery Mobile (CSS): version 1.4.5 (the current version as of 5/16/2016) -->
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
+
+<link rel="stylesheet" type="text/css" href="jsjqfinal.css">
+
+<!-- jQuery: version 2.1.4 (Conflict with jquery mobile popups encountered with 2.2.3, reverted to 2.1.4) -->	
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<!-- jQuery Mobile: version 1.4.5 (the current version as of 5/16/2016) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
+
+<script>
+    // Favorites
+    var myFavorites = [];
+    
+    // Master pet list
+    var petList = [];
+    
+    // Object to hold pet information
+    function Pet (name, type, age, sex, altered, breed, weight, grabber, favorite) {
+        
+        this.name = name;
+        this.type = type;               // dog or cat
+        this.age = age;                 // in months (young: <= 18, senior: >= 84)
+        this.sex = sex;                 // "f": "female", "m": "male"
+        this.altered = altered;         // boolean (true: spayed/neutered, false: not fixed)
+        this.breed = breed;
+        this.weight = weight;           // in pounds
+        this.grabber = grabber;         // A few words to catch attention
+        this.favorite = favorite;       // true: favorite, false: not favorite
+        
+    }
+    
+    // Cats
+    var cat_willow = new Pet("Willow", "cat", 20, "f", true, "Domestic Short Hair blend", 7.5, "Cuddle-Bug", false);
+    var cat_bonnie = new Pet("Bonnie", "cat", 24, "f", true, "Domestic Short Hair blend", 10.6, "Very smart, in need of a good friend", false);
+    var cat_mrkrabs = new Pet("Mr. Krabs", "cat", 96, "m", true, "Domestic Short Hair blend", 9.38, "Playful and inquisitive", false);
+    // Add Cats to pet array
+    petList.push(cat_willow, cat_bonnie, cat_mrkrabs);
+    
+    // Dogs
+    var dog_ralph = new Pet("Ralph", "dog", 3, "m", true, "Labrador Retriever blend", 14.2, "Ideal exercise buddy, loves very long walks", false);
+    var dog_pilgrim = new Pet("Pilgrim", "dog", 55, "m", true, "Shepherd blend", 65, "Fun loving, high energy fetch enthusiast", false);
+    var dog_caramel = new Pet("Caramel", "dog", 28, "f", true, "Chihuahua blend", 8.5, "Smart and high spirited, loves to play with toys", false);
+    // Add Dogs to pet array
+    petList.push(dog_ralph, dog_pilgrim, dog_caramel);
+    
+    // ----- READY -----
+    $(document).ready(function() {
+        
+        // -- INITIALIZE -- 
+        // Build structure for #browse
+        // Page structure
+        $("#browse div[data-role='main']").append('<div id="main-content"></div>');
+        $("#main-content").prepend('<div id="pet-img" class="polaroid"></div>');
+        $("#main-content").append('<a href="#pet-info" data-rel="popup" data-position-to="window" id="pet-btn-info" class="ui-shadow ui-btn ui-corner-all ui-btn-inline ui-icon-info ui-btn-icon-notext"></a>');
+        $("#main-content").append('<button id="pet-btn-fav" class="ui-shadow ui-btn ui-corner-all ui-btn-inline ui-icon-heart ui-btn-icon-notext"></button>');
+        $("#main-content").append('<button id="pet-btn-next" class="ui-shadow ui-btn ui-corner-all ui-btn-inline ui-icon-arrow-r ui-btn-icon-notext">Next Pet</button>');
+        
+        // Polaroid structure
+        $("#pet-img").prepend('<img>');
+        $("#pet-img").append('<div class="container"></div>');
+        $("#pet-img .container").append('<h2></h2>');
+        $("#pet-img .container").append('<p></p>').append('<p></p>');
+        
+        // Error Message for #browse
+        $("#browse div[data-role='main']").append('<div id="errMsg"></div>');
+        $("#errMsg").append('<h1>No pets available to show.</h1>');
+        $("#errMsg").append('<p>Try changing your settings to broaden your search, or check back later for more updates!</p>');
+        $("#errMsg").hide();
+        
+        // Favorites structure
+        for (var j = 0; j < petList.length; j++) {
+            $("#fav-panel ul").append("<li><img><div>" + petList[j].name + ", " + petList[j].sex.toUpperCase() + "</div></li>");
+            $("#fav-panel img:last").attr('src', ("img/" + petList[j].type.toLowerCase() + "/" + petList[j].name.toLowerCase().replace(". ", "") + "_sm.png")).attr("alt", ("Photo of " + petList[j].name + " the " + petList[j].type));
+            $("#fav-panel img:last").addClass("img-circle");
+        }
+        
+        // No favorites by default, hide all
+        $("#fav-panel li").hide();
+
+        // -- VARIABLES --
+        var i = 0;
+        var changed = 0; // Tracker for settings
+        var displayList = petList; // Working array
+        
+        // Initial pet photo & info
+        updatePet();
+        
+        // ----- FUNCTIONS -----
+          // updatePet() - updates content for browse pets
+          // alteredFmt(petSex, petFixed) - formatting for info popup
+          // ageFmt(ageMos) - formatting for info popup
+          // updateIndex() - updates index counter for looping through pet array
+          // nextPet() - updates index & displays next pet in array
+          // findIndex() - finds index of current pet in master array (for use in favorites list)
+          // updateFavorites() - updates visible pets in favorites list
+          // updateList() - updates working array based on user settings
+          // validateForm() - validates settings form, returns true if valid, false if not
+          // validateList() - validates working array to make sure it's not empty, returns true if valid, false if not. Also handles display of error message.
+          // resetList() - copies the entire master array into the working array
+        
+        // Get pet at current index and display image and short description on the page
+        function updatePet() {
+            if (validateList() === true) {
+                // Image
+                $("#pet-img > img").attr('src', ("img/" + displayList[i].type.toLowerCase() + "/" + displayList[i].name.toLowerCase().replace(". ", "") + ".jpg")).attr("alt", ("Photo of " + displayList[i].name + " the " + displayList[i].type));
+                
+                // Description
+                $("#pet-img .container > h2").text(displayList[i].name + ", " + displayList[i].sex.toUpperCase());
+                $("#pet-img .container > p:first").text(displayList[i].breed);
+                $("#pet-img .container > p:last").text(displayList[i].grabber);
+                
+                // Favorites action button
+                if (displayList[i].favorite === true) {
+                    $("#pet-btn-fav").removeClass("ui-icon-heart");
+                    $("#pet-btn-fav").addClass("ui-icon-forbidden");
+                } else {
+                    $("#pet-btn-fav").addClass("ui-icon-heart");
+                    $("#pet-btn-fav").removeClass("ui-icon-forbidden");
+                }
+                
+                // Info button
+                $("#pet-btn-info").text("About " + displayList[i].name);
+                
+                // Panel info
+                // name, type, age, sex, altered, breed, weight, grabber, favorite
+                $("#pet-info ul li:eq(0)").html('<strong>Name: </strong>' + displayList[i].name);
+                $("#pet-info ul li:eq(1)").html('<strong>Type: </strong>' + displayList[i].type);
+                $("#pet-info ul li:eq(2)").html('<strong>Breed: </strong>' + displayList[i].breed);
+                $("#pet-info ul li:eq(3)").html('<strong>Sex: </strong>' + displayList[i].sex + ' - ' + alteredFmt(displayList[i].sex, displayList[i].altered));
+                $("#pet-info ul li:eq(4)").html('<strong>Age: </strong>' + ageFmt(displayList[i].age));
+                $("#pet-info ul li:eq(5)").html('<strong>Weight: </strong>' + displayList[i].weight + ' lbs.');
+            } 
+        } // END updatePet()
+        
+        // Return appropriate "spayed" or "neutered" string based on sex of pet, "fixed" returns by default
+        function alteredFmt(petSex, petFixed) {
+            var returnStr = '';
+            if (petFixed !== true) {
+                returnStr += "not ";
+            }
+            
+            if (petSex === "f") {
+                returnStr += "spayed";
+            } else if (petSex === "m") {
+                returnStr += "neutered";
+            } else {
+                returnStr += "fixed";
+            }
+            
+            return returnStr;
+        } // END alteredFmt()
+        
+        // Return formatted age string
+        function ageFmt(ageMos) {
+            var returnStr = '';
+            if (ageMos <= 18) {
+                returnStr += ageMos + " months";
+            } else {
+                returnStr += (Math.floor(ageMos / 12)) + " year(s) " + (ageMos % 12) + " month(s)";
+            }
+            return returnStr;
+        } // END ageFmt()
+        
+        // Update the index to move through pet array, if it hits the end of the array, set it back to 0
+        function updateIndex() {
+            i++;
+            
+            if (i >= displayList.length) {
+                i = 0;
+            }
+        } // END updateIndex()
+        
+        // Fills in new pet information on #browse
+        function nextPet() {
+            updateIndex();
+            updatePet();
+        } // END nextPet()
+        
+        // Find the index of current display pet in master list
+        function findIndex() {
+            for (var k = 0; k < petList.length; k++) {
+                if (displayList[i].name === petList[k].name) {
+                    return k;
+                }
+            }
+            return -1;
+        } // END findIndex()
+        
+        // Called when a change is made to favorites list
+        function updateFavorites() {
+            // Get the index so we know which list item to hide or show
+            var index = findIndex();
+            
+            // Toggle favorite
+            if (displayList[i].favorite === true) {
+                displayList[i].favorite = false;
+                $("#pet-btn-fav").addClass("ui-icon-heart");
+                $("#pet-btn-fav").removeClass("ui-icon-forbidden");
+                $("#fav-panel ul li:eq(" + index + ")").hide();
+            } else {
+                displayList[i].favorite = true;
+                $("#pet-btn-fav").removeClass("ui-icon-heart");
+                $("#pet-btn-fav").addClass("ui-icon-forbidden");
+                $("#fav-panel ul li:eq(" + index + ")").show();
+            }
+            
+            myFavorites = $.grep(petList, function(value, k) {
+                return (value.favorite === true);
+            });
+        } // END updateFavorites()
+        
+        // Updates the working array based on user defined preferences
+        function updateList() {
+            if (validateForm() === true) {
+                // Reset list to prepare for new filters
+                resetList();
+                
+                // Type of animal
+                if ($("#typeCat").prop("checked")) {
+                    displayList = $.grep(displayList, function(value, k) {
+                        return (value.type == "cat");
+                    });
+                } else if ($("#typeDog").prop("checked")) {
+                    displayList = $.grep(displayList, function(value, k) {
+                        return (value.type == "dog");
+                    });
+                } // END type if statement
+                
+                // Age
+                // TODO make this less cumbersome
+                if ($("#ageYoung").prop("checked") && $("#ageAdult").prop("checked") && $("#ageSenior").prop("checked")) {
+                    // do nothing
+                } else if ($("#ageYoung").prop("checked")) {
+                    if ($("#ageAdult").prop("checked")) {
+                        // Young, Adult
+                        displayList = $.grep(displayList, function(value, k) {
+                            return (value.age < 84);
+                        });
+                    } else if ($("#ageSenior").prop("checked")) {
+                        // Young, Senior
+                        displayList = $.grep(displayList, function(value, k) {
+                            return (value.age <= 18 || value.age >= 84);
+                        });
+                    } else {
+                        // Young
+                        displayList = $.grep(displayList, function(value, k) {
+                            return (value.age <= 18);
+                        });
+                    }
+                } else if ($("#ageAdult").prop("checked")) {
+                    if ($("#ageSenior").prop("checked")) {
+                        // Adult, Senior
+                        displayList = $.grep(displayList, function(value, k) {
+                            return (value.age > 18);
+                        });
+                    } else {
+                        // Adult
+                        displayList = $.grep(displayList, function(value, k) {
+                            return (value.age > 18 && value.age < 84);
+                        });
+                    }
+                } else if ($("#ageSenior").prop("checked")) {
+                    // Senior
+                    displayList = $.grep(displayList, function(value, k) {
+                        return (value.age >= 84);
+                    });
+                } // END age if statement
+                
+                // Sex
+                if ($("#sexF").prop("checked")) {
+                    displayList = $.grep(displayList, function(value, k) {
+                        return (value.sex == "f");
+                    });
+                } else if ($("#sexM").prop("checked")) {
+                    displayList = $.grep(displayList, function(value, k) {
+                        return (value.sex == "m");
+                    });
+                } // END sex if statement
+                // TODO insert length error check here also
+                // Update content on #browse in case current animal was filtered out & array index no longer valid
+                nextPet();
+                changed = 0; // Update changed tracker so updateList() doesn't run again on leaving settings page
+            } else {
+                // Please fix form errors to filter pets
+                // TODO show error msg
+            }
+        } // END updateList()
+        
+        // Returns true if valid
+        function validateForm() {
+            if (!$("#ageYoung").prop("checked") && !$("#ageAdult").prop("checked") && !$("#ageSenior").prop("checked")) {
+                return false;
+            } else {
+                return true;
+            }
+        } // END validateForm()
+        
+        // Returns true if valid
+        // TODO show/hide is redundant, gets called way more than it needs to be. checking if .is(':visible') never returns true... why?
+        function validateList() {
+            if (displayList.length > 0) {
+                $("#main-content").show();
+                $("#errMsg").hide();
+                return true;
+            } else {
+                $("#main-content").hide();
+                $("#errMsg").show();
+                return false;
+            }
+        } // END validateList()
+        
+        // Grabs master pet array again
+        function resetList() {
+            displayList = petList;
+        } // END resetList()
+
+        // ----- GESTURES -----
+        // Swipe Left: next animal
+        $("#browse div[data-role='main']").on("swipeleft", nextPet);
+        // Swipe Right: Add to favorites
+        $("#browse div[data-role='main']").on("swiperight", updateFavorites);
+        
+        // ----- BUTTONS -----
+        // Next pet: next animal
+        $("button#pet-btn-next").click(nextPet);
+        // Favorite: toggle favorite (add or remove from favorites list), toggle class of icon
+        $("button#pet-btn-fav").click(updateFavorites);
+        // Info: Open popup with full information
+        
+        // Settings: On change (save?), update display properties of all items in list(?)
+        $("button#saveSettings").click(updateList);
+        
+        // ----- PAGE EVENTS -----
+        // Reset changed tracker
+        $(document).on("pagebeforeshow", "#settings", function() {
+            changed = 0;
+        });
+        
+        // Update changed tracker when changes are made to settings
+        $("input").change(function() {
+            // alert ("Input changed." + changed);
+            changed++;
+        });
+        
+        // Apply settings when leaving settings page
+        $(document).on("pagebeforehide", "#settings", function() {
+            if (changed > 0) {
+                updateList();
+            }
+        });
+        
+    }); // END ready
+</script>
+</head>
+
+<body>
+<!-- START PAGE #browse -->
+<div data-role="page" id="browse">
+  <div data-role="panel" data-display="overlay" data-position="right" id="fav-panel">
+    <h1>Favorites</h1>
+    <ul data-role="listview" data-inset="true">
+    </ul>
+    <a href="#browse" data-rel="close" class="ui-btn ui-btn-inline ui-shadow ui-corner-all ui-btn-a ui-icon-delete ui-btn-icon-left">Close</a>
+  </div>
+  
+  <div data-role="header" data-position="fixed" data-theme="b">
+    <!-- branding --><img src="img/petmatch_logo_sm.png" class="brand-logo" alt=""/><img src="img/petmatch_phrase_sm.png" class="brand-phrase" alt=""/>
+  </div>
+
+  <div data-role="main" class="ui-content">
+    <div data-role="popup" id="pet-info">
+      <ul data-role="listview">
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+      </ul>
+    </div>
+  </div>
+
+  <div data-role="footer" data-position="fixed" data-theme="b">
+    <div data-role="navbar" data-iconpos="left">
+      <ul>
+        <li><a href="#settings" data-icon="gear">Settings</a></li>
+        <li><a href="#browse" data-icon="bullets">Browse Pets</a></li>
+        <li><a href="#fav-panel" data-icon="heart">Favorites</a></li>
+      </ul>
+    </div>
+  </div>
+</div><!-- END PAGE #browse -->
+
+<!-- START PAGE #settings -->
+<div data-role="page" id="settings">
+  <div data-role="header" data-position="fixed" data-theme="b">
+    <!-- branding --><img src="img/petmatch_logo_sm.png" class="brand-logo" alt=""/><img src="img/petmatch_phrase_sm.png" class="brand-phrase" alt=""/>
+  </div>
+
+  <div data-role="main" class="ui-content">
+  <h1>Settings</h1>
+    <!-- FORM -->
+    <form method="post" action="javascript:void(0);">
+      <h2>I want my pet to be</h2>
+      <div class="ui-field-contain">
+        <fieldset data-role="controlgroup" data-type="horizontal">
+          <legend>Animal type:</legend>
+            <label for="typeAny">Any</label>
+            <input type="radio" name="typeSelect" id="typeAny" value="" checked>
+            <label for="typeDog">Dog</label>
+            <input type="radio" name="typeSelect" id="typeDog" value="dog">
+            <label for="typeCat">Cat</label>
+            <input type="radio" name="typeSelect" id="typeCat" value="cat">
+        </fieldset>
+      </div>
+      <div class="ui-field-contain">
+        <fieldset data-role="controlgroup">
+          <legend>Age of pet:</legend>
+            <label for="ageYoung">Young (0 - 18 months)</label>
+            <input type="checkbox" name="ageSelect" id="ageYoung" value="young" checked>
+            <label for="ageAdult">Adult (1.5 - 7 years)</label>
+            <input type="checkbox" name="ageSelect" id="ageAdult" value="adult" checked>
+            <label for="ageSenior">Senior (7+ years)</label>
+            <input type="checkbox" name="ageSelect" id="ageSenior" value="senior" checked>
+        </fieldset>
+      </div>
+      <div class="ui-field-contain">
+        <fieldset data-role="controlgroup" data-type="horizontal">
+          <legend>Sex:</legend>
+            <label for="sexA">Any</label>
+            <input type="radio" name="sexSelect" id="sexA" value="a" checked>
+            <label for="sexF">Female</label>
+            <input type="radio" name="sexSelect" id="sexF" value="f">
+            <label for="sexM">Male</label>
+            <input type="radio" name="sexSelect" id="sexM" value="m">
+        </fieldset>
+      </div>
+      <button id="saveSettings" type="button" class="ui-btn ui-btn-inline ui-corner-all ui-shadow">Save Settings</button>
+    </form><!-- END form -->
+  </div>
+
+  <div data-role="footer" data-position="fixed" data-theme="b">
+    <div data-role="navbar" data-iconpos="left">
+      <ul>
+        <li><a href="#settings" data-icon="gear">Settings</a></li>
+        <li><a href="#browse" data-icon="bullets">Browse Pets</a></li>
+        <li><a href="#fav-panel" data-icon="heart">Favorites</a></li>
+      </ul>
+    </div>
+  </div>
+</div><!-- END PAGE #settings -->
+</body>
+</html>
