@@ -1,0 +1,82 @@
+/* Cecilia Mason */
+
+/* Basic Page Styling */
+body {
+    text-align: center;
+}
+.ui-bar-b {
+    background-color: #4b4b4b;
+}
+
+/* Branding */
+.brand-logo {
+    width: 40%;
+    max-width: 284px;
+    float: left;
+}
+.brand-phrase {
+    width: 60%;
+    max-width: 398px;
+    float: right;
+}
+.ui-header {
+    clear: both;
+}
+
+/* Browse Pets */
+#pet-img img {
+    max-width: 100%;
+}
+div.polaroid {
+  width: 95%;
+  max-width: 512px;
+  background-color: white;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  margin: 0px auto;
+  margin-bottom: 25px;
+}
+div.container {
+  padding: 10px 20px;
+  text-align: left;
+}
+div.container h2, p {
+    margin: 0px;
+}
+
+/* Pet Info Popup */
+#pet-info h2, ul {
+    text-align: left;
+}
+
+/* Favorites List */
+#favorites li.fav-list {
+    height: 100px;
+}
+.img-circle {
+    border-radius: 50%;
+}
+#fav-panel li img {
+    float: left;
+    margin: 10px;
+}
+#fav-panel li > div {
+    padding: 30px;
+    font-weight: bold;
+}
+#fav-panel li {
+    clear: left;
+    height: 80px;
+}
+
+/* Settings */
+legend {
+    font-weight: bold;
+}
+
+/* Media Queries */
+@media only screen and (min-width: 768px) {
+    .brand-phrase {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
